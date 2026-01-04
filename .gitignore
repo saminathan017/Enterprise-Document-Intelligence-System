@@ -1,0 +1,273 @@
+# .gitignore - Enterprise AI Agent Project
+# Comprehensive security and professional development exclusions
+
+# ============================================
+# 🔒 CRITICAL SECURITY - NEVER COMMIT THESE
+# ============================================
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+.env.test
+
+# API Keys and Credentials
+*.key
+*.pem
+*.p12
+*.pfx
+*.cer
+*.crt
+secrets/
+credentials/
+api_keys.txt
+*.token
+*.jwt
+auth.json
+credentials.json
+service-account*.json
+gcp-credentials.json
+aws-credentials.json
+
+# SSH Keys
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+known_hosts
+authorized_keys
+
+# Cloud credentials
+.aws/
+.azure/
+.gcloud/
+*.credentials
+
+# ============================================
+# PYTHON
+# ============================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+virtualenv/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# ============================================
+# 📊 DATA & DATABASES (May contain user data)
+# ============================================
+data/
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+chroma_db/
+vector_store/
+embeddings/
+uploads/
+documents/
+*.csv
+*.xlsx
+*.parquet
+
+# ============================================
+# 📝 LOGS (May contain sensitive info)
+# ============================================
+logs/
+*.log
+*.log.*
+server.log
+debug.log
+error.log
+access.log
+app.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ============================================
+# 💾 BACKUPS (May contain old sensitive data)
+# ============================================
+backups/
+*.backup
+*.bak
+*-backup.*
+*.old
+*.orig
+*.save
+
+# ============================================
+# 🗑️ TEMPORARY FILES
+# ============================================
+tmp/
+temp/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# System files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+Thumbs.db
+
+# ============================================
+# 🔧 IDE & EDITORS
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+antigravity/
+.vscode-test/
+*.code-workspace
+
+# ============================================
+# 📦 NODE.JS
+# ============================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+package-lock.json
+yarn.lock
+
+# Next.js (old frontend - no longer used)
+web-frontend/
+.next/
+out/
+
+# ============================================
+# 🧪 TESTING
+# ============================================
+test_data/
+test-*.html
+*.test.html
+.coverage
+htmlcov/
+
+# ============================================
+# 📚 DOCUMENTATION (generated)
+# ============================================
+docs/pdfs/
+site/
+_build/
+.doctrees/
+
+# ============================================
+# 💼 PROFESSIONAL EXCLUSIONS
+# ============================================
+# Session data (contains user queries)
+sessions/
+*.session
+data/sessions/
+
+# Personal notes
+NOTES.md
+TODO.md
+PERSONAL.md
+SCRATCH.md
+
+# User-specific startup scripts
+*.command
+
+# ============================================
+# ✅ EXCEPTIONS - Keep these files
+# ============================================
+!.env.example
+!.gitkeep
+!data/documents/.gitkeep
+!logs/.gitkeep
+
+# ============================================
+# 🚫 ADDITIONAL SECURITY PATTERNS
+# ============================================
+# Prevent accidental commits of config with secrets
+*secret*
+*password*
+*private*
+*.cert
+
+# Docker secrets
+docker-compose.override.yml
+.dockerignore
+
+# CI/CD secrets
+.github/secrets/
+
+# Local configuration overrides
+local_settings.py
+settings_local.py
+config_local.py
+
+# Cache directories
+.cache/
+cache/
+*.cache

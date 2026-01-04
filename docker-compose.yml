@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # Enterprise AI Agent RAG API
+  enterprise-ai-agent-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: enterprise-ai-agent-api
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./data:/app/data
+      - ./app:/app/app
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - enterprise-ai-agent-network
+
+  # Frontend (optional - can serve via nginx)
+  enterprise-ai-agent-frontend:
+    image: nginx:alpine
+    container_name: enterprise-ai-agent-frontend
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - enterprise-ai-agent-api
+    restart: unless-stopped
+    networks:
+      - enterprise-ai-agent-network
+
+networks:
+  enterprise-ai-agent-network:
+    driver: bridge
+
+volumes:
+  enterprise-ai-agent-data:
+    driver: local
