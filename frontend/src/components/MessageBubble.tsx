@@ -25,11 +25,6 @@ export default function MessageBubble({ message }: Props) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // Extract last user message for feedback context
-  const userQuery = message.role === 'assistant'
-    ? '' // filled by parent query stored in store; feedback passes it along
-    : message.content
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -39,7 +34,7 @@ export default function MessageBubble({ message }: Props) {
     >
       {/* AI avatar */}
       {!isUser && (
-        <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center mt-0.5">
+        <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-red-600 flex items-center justify-center mt-0.5">
           <span className="text-white text-xs font-bold">AI</span>
         </div>
       )}
@@ -50,7 +45,7 @@ export default function MessageBubble({ message }: Props) {
           className={clsx(
             'relative rounded-2xl px-4 py-3 text-sm leading-relaxed',
             isUser
-              ? 'bg-gradient-to-r from-cyan-500/15 to-purple-500/15 border border-cyan-500/20 text-slate-200 rounded-tr-sm'
+              ? 'bg-gradient-to-r from-cyan-500/15 to-red-500/15 border border-cyan-500/20 text-slate-200 rounded-tr-sm'
               : 'glass border border-white/8 text-slate-200 rounded-tl-sm'
           )}
         >

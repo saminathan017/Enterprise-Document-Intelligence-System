@@ -63,11 +63,11 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="px-5 py-5 border-b border-white/5">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center glow-cyan">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-red-600 flex items-center justify-center glow-red">
             <span className="text-white font-bold text-sm">AI</span>
           </div>
           <div>
-            <p className="text-sm font-semibold text-white">Enterprise Analyst</p>
+            <p className="text-sm font-semibold text-white">Enterprise Document Intelligence</p>
             <p className="text-xs text-slate-500">v2.0 · AI-Powered</p>
           </div>
         </div>
@@ -82,7 +82,7 @@ export default function Sidebar() {
             className={clsx(
               'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200',
               activeView === view
-                ? 'bg-gradient-to-r from-cyan-500/15 to-purple-500/15 border border-cyan-500/25 text-cyan-300'
+                ? 'bg-gradient-to-r from-cyan-500/15 to-red-500/15 border border-cyan-500/25 text-cyan-300'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
             )}
           >

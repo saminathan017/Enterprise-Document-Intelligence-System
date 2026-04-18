@@ -97,7 +97,7 @@ export default function Header() {
           className={clsx(
             'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all border',
             useHyde
-              ? 'bg-purple-500/20 border-purple-500/40 text-purple-300'
+              ? 'bg-red-500/20 border-red-500/40 text-red-300'
               : 'border-white/10 text-slate-500 hover:text-slate-300 hover:border-white/20'
           )}
         >

@@ -59,7 +59,7 @@ export default function Background3D() {
             const opacity = (1 - dist / CONNECTION_DIST) * 0.25
             const geom = new THREE.BufferGeometry().setFromPoints([positions[i], positions[j]])
             const mat = new THREE.LineBasicMaterial({
-              color: i % 3 === 0 ? 0x8b5cf6 : 0x00d4ff,
+              color: i % 3 === 0 ? 0xff1a1a : 0x00d4ff,
               transparent: true,
               opacity,
             })
@@ -74,7 +74,7 @@ export default function Background3D() {
     const partPositions = new Float32Array(600 * 3)
     for (let i = 0; i < 600 * 3; i++) partPositions[i] = (Math.random() - 0.5) * 30
     partGeom.setAttribute('position', new THREE.BufferAttribute(partPositions, 3))
-    const partMat = new THREE.PointsMaterial({ color: 0x8b5cf6, size: 0.03, transparent: true, opacity: 0.35 })
+    const partMat = new THREE.PointsMaterial({ color: 0xff1a1a, size: 0.03, transparent: true, opacity: 0.25 })
     scene.add(new THREE.Points(partGeom, partMat))
 
     let frameCount = 0

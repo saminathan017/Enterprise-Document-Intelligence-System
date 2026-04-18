@@ -12,7 +12,7 @@ import {
 import { getAnalytics, getFeedbackSummary, getCosts } from '@/api/client'
 import { formatDistanceToNow } from 'date-fns'
 
-const CHART_COLORS = { primary: '#00d4ff', secondary: '#8b5cf6', grid: 'rgba(255,255,255,0.05)' }
+const CHART_COLORS = { primary: '#00d4ff', secondary: '#ff1a1a', grid: 'rgba(255,255,255,0.05)' }
 
 function StatCard({
   icon: Icon, label, value, sub, color
@@ -21,11 +21,11 @@ function StatCard({
   label: string
   value: number | string
   sub?: string
-  color: 'cyan' | 'purple' | 'emerald' | 'yellow' | 'rose' | 'orange'
+  color: 'cyan' | 'red' | 'emerald' | 'yellow' | 'rose' | 'orange'
 }) {
   const colors = {
     cyan:    { bg: 'bg-cyan-500/10',    text: 'text-cyan-400',    glow: 'shadow-[0_0_20px_rgba(0,212,255,0.15)]' },
-    purple:  { bg: 'bg-purple-500/10',  text: 'text-purple-400',  glow: 'shadow-[0_0_20px_rgba(139,92,246,0.15)]' },
+    red:     { bg: 'bg-red-500/10',     text: 'text-red-400',     glow: 'shadow-[0_0_20px_rgba(255,26,26,0.2)]' },
     emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', glow: '' },
     yellow:  { bg: 'bg-yellow-500/10',  text: 'text-yellow-400',  glow: '' },
     rose:    { bg: 'bg-rose-500/10',    text: 'text-rose-400',    glow: '' },
@@ -127,7 +127,7 @@ export default function AnalyticsView() {
       {/* KPI cards — row 1 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={FileText}      label="Documents"      value={data?.unique_documents ?? 0}  sub="unique files"      color="cyan" />
-        <StatCard icon={Activity}      label="Indexed Chunks" value={data?.total_chunks ?? 0}       sub="vector embeddings" color="purple" />
+        <StatCard icon={Activity}      label="Indexed Chunks" value={data?.total_chunks ?? 0}       sub="vector embeddings" color="red" />
         <StatCard icon={MessageSquare} label="Total Queries"  value={data?.total_queries ?? 0}      sub="all time"          color="emerald" />
         <StatCard icon={Users}         label="Sessions"       value={data?.total_sessions ?? 0}     sub="conversations"     color="yellow" />
       </div>
@@ -160,7 +160,7 @@ export default function AnalyticsView() {
           label="Tokens Used"
           value={costs ? `${((costs.total_input_tokens + costs.total_output_tokens) / 1000).toFixed(1)}k` : '—'}
           sub={costs ? `${costs.total_input_tokens.toLocaleString()} in / ${costs.total_output_tokens.toLocaleString()} out` : ''}
-          color="purple"
+          color="red"
         />
       </div>
 

@@ -20,7 +20,7 @@ interface UploadState {
 const FILE_TYPE_COLORS: Record<string, string> = {
   pdf: 'text-red-400 bg-red-500/10',
   txt: 'text-blue-400 bg-blue-500/10',
-  md:  'text-purple-400 bg-purple-500/10',
+  md:  'text-red-400 bg-red-500/10',
 }
 
 function humanSize(bytes: number) {
@@ -91,16 +91,16 @@ export default function DocumentsView() {
       <div className="grid grid-cols-3 gap-4">
         {[
           { label: 'Documents', value: docs.length, icon: FileText, color: 'cyan' },
-          { label: 'Total Chunks', value: docs.reduce((a, d) => a + d.total_chunks, 0), icon: Database, color: 'purple' },
+          { label: 'Total Chunks', value: docs.reduce((a, d) => a + d.total_chunks, 0), icon: Database, color: 'red' },
           { label: 'Uploading', value: uploads.filter((u) => u.status === 'uploading').length, icon: Upload, color: 'yellow' },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="glass border border-white/8 rounded-2xl px-5 py-4 flex items-center gap-4">
             <div className={clsx(
               'w-10 h-10 rounded-xl flex items-center justify-center',
-              color === 'cyan' ? 'bg-cyan-500/15' : color === 'purple' ? 'bg-purple-500/15' : 'bg-yellow-500/15'
+              color === 'cyan' ? 'bg-cyan-500/15' : color === 'red' ? 'bg-red-500/15' : 'bg-yellow-500/15'
             )}>
               <Icon size={18} className={
-                color === 'cyan' ? 'text-cyan-400' : color === 'purple' ? 'text-purple-400' : 'text-yellow-400'
+                color === 'cyan' ? 'text-cyan-400' : color === 'red' ? 'text-red-400' : 'text-yellow-400'
               } />
             </div>
             <div>
@@ -122,7 +122,7 @@ export default function DocumentsView() {
         )}
       >
         <input {...getInputProps()} />
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-purple-500/10 border border-white/10 flex items-center justify-center mx-auto mb-4">
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-red-500/10 border border-white/10 flex items-center justify-center mx-auto mb-4">
           <Upload size={24} className={isDragActive ? 'text-cyan-400' : 'text-slate-500'} />
         </div>
         <p className="text-slate-300 font-medium mb-1">

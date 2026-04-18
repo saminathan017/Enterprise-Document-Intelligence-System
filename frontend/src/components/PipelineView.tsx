@@ -23,7 +23,7 @@ const QUERY_STEPS = [
 
 const COLOR_MAP = {
   cyan:   { dot: 'bg-cyan-500', text: 'text-cyan-400', border: 'border-cyan-500/20', bg: 'bg-cyan-500/8' },
-  purple: { dot: 'bg-purple-500', text: 'text-purple-400', border: 'border-purple-500/20', bg: 'bg-purple-500/8' },
+  purple: { dot: 'bg-red-500', text: 'text-red-400', border: 'border-red-500/20', bg: 'bg-red-500/8' },
 }
 
 function PipelineColumn({
@@ -130,7 +130,7 @@ export default function PipelineView() {
           <span className={clsx(
             'px-3 py-1 rounded-full border text-xs font-mono',
             useHyde
-              ? 'bg-purple-500/10 border-purple-500/20 text-purple-300'
+              ? 'bg-red-500/10 border-red-500/20 text-red-300'
               : 'bg-white/5 border-white/10 text-slate-500'
           )}>
             HyDE: {useHyde ? 'ON' : 'OFF'}

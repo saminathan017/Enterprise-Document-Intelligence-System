@@ -18,13 +18,24 @@ export default {
         cyan: {
           glow: '#00d4ff',
         },
-        purple: {
-          glow: '#8b5cf6',
+        red: {
+          50:  '#fff0f0',
+          100: '#ffd6d6',
+          200: '#ffaaaa',
+          300: '#ff6666',
+          400: '#ff3333',
+          500: '#ff1a1a',
+          600: '#e60000',
+          700: '#b30000',
+          800: '#800000',
+          900: '#4d0000',
+          950: '#1a0000',
+          glow: '#ff1a1a',
         },
       },
       boxShadow: {
         'glow-cyan': '0 0 20px rgba(0, 212, 255, 0.3)',
-        'glow-purple': '0 0 20px rgba(139, 92, 246, 0.3)',
+        'glow-red':  '0 0 25px rgba(255, 26, 26, 0.5)',
         'glow-sm': '0 0 8px rgba(0, 212, 255, 0.2)',
         glass: '0 8px 32px rgba(0, 0, 0, 0.4)',
       },

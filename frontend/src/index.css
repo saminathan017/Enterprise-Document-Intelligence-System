@@ -17,10 +17,10 @@
   ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: rgba(139, 92, 246, 0.4);
+    background: rgba(255, 26, 26, 0.5);
     border-radius: 2px;
   }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.7); }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255, 26, 26, 0.9); }
 
   ::selection { background: rgba(0, 212, 255, 0.2); }
 }
@@ -33,18 +33,21 @@
     @apply hover:bg-white/8 transition-colors duration-200;
   }
   .glow-cyan {
-    box-shadow: 0 0 20px rgba(0, 212, 255, 0.25);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
   }
-  .glow-purple {
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.25);
+  .glow-red {
+    box-shadow: 0 0 20px rgba(255, 26, 26, 0.4);
+  }
+  .glow-red-lg {
+    box-shadow: 0 0 40px rgba(255, 26, 26, 0.35), 0 0 80px rgba(255, 26, 26, 0.15);
   }
   .text-gradient {
-    @apply bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-cyan-400 to-red-500 bg-clip-text text-transparent;
   }
   .btn-primary {
-    @apply px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500/20 to-purple-500/20
+    @apply px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500/20 to-red-500/20
            border border-cyan-500/30 text-cyan-300 text-sm font-medium
-           hover:from-cyan-500/30 hover:to-purple-500/30 hover:border-cyan-400/50
+           hover:from-cyan-500/30 hover:to-red-500/30 hover:border-cyan-400/50
            transition-all duration-200 cursor-pointer select-none;
   }
   .btn-ghost {
@@ -52,17 +55,83 @@
            hover:text-slate-200 hover:bg-white/5
            transition-all duration-150 cursor-pointer select-none;
   }
+
+  /* Sporty top racing stripe */
+  .racing-stripe {
+    position: relative;
+    overflow: hidden;
+  }
+  .racing-stripe::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #00d4ff 25%, #ff1a1a 65%, transparent);
+    opacity: 1;
+  }
+
+  /* Corner bracket decoration */
+  .bracket-corner {
+    position: relative;
+  }
+  .bracket-corner::before,
+  .bracket-corner::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-color: rgba(255, 26, 26, 0.6);
+    border-style: solid;
+  }
+  .bracket-corner::before {
+    top: 4px; left: 4px;
+    border-width: 1px 0 0 1px;
+  }
+  .bracket-corner::after {
+    bottom: 4px; right: 4px;
+    border-width: 0 1px 1px 0;
+  }
 }
 
 /* Streaming cursor */
 .streaming-cursor::after {
   content: '▋';
   animation: cursor 0.8s step-end infinite;
-  color: #00d4ff;
+  color: #ff1a1a;
   margin-left: 1px;
 }
 
 @keyframes cursor {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
+}
+
+/* Scan line overlay — subtle futuristic effect */
+@keyframes scanline {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+.scanline-overlay {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+.scanline-overlay::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  height: 120px;
+  background: linear-gradient(to bottom, transparent, rgba(0,212,255,0.015), transparent);
+  animation: scanline 8s linear infinite;
+}
+
+/* Pulse ring for live indicators */
+@keyframes ping-red {
+  75%, 100% { transform: scale(2); opacity: 0; }
+}
+.ping-red {
+  animation: ping-red 1.2s cubic-bezier(0, 0, 0.2, 1) infinite;
 }

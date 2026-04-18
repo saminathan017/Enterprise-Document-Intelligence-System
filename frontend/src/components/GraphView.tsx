@@ -3,13 +3,12 @@ import { useMutation } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { buildKnowledgeGraph } from '@/api/client'
 import { Share2, RefreshCw, Info } from 'lucide-react'
-import { clsx } from 'clsx'
 import type { GraphNode } from '@/types'
 import cytoscape from 'cytoscape'
 
 const TYPE_COLORS: Record<string, string> = {
   person:       '#00d4ff',
-  organization: '#8b5cf6',
+  organization: '#ff1a1a',
   metric:       '#f59e0b',
   concept:      '#10b981',
   date:         '#64748b',
@@ -174,8 +173,8 @@ export default function GraphView() {
       <div className="flex-1 relative overflow-hidden">
         {stats.nodes === 0 && !isPending ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-8">
-            <div className="w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-5">
-              <Share2 size={28} className="text-purple-400" />
+            <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-5">
+              <Share2 size={28} className="text-red-400" />
             </div>
             <h3 className="text-lg font-semibold text-slate-200 mb-2">Entity Knowledge Graph</h3>
             <p className="text-sm text-slate-500 max-w-sm mb-6">
@@ -187,7 +186,7 @@ export default function GraphView() {
           </div>
         ) : isPending ? (
           <div className="flex flex-col items-center justify-center h-full gap-4">
-            <div className="w-10 h-10 border-2 border-purple-500/30 border-t-purple-400 rounded-full animate-spin" />
+            <div className="w-10 h-10 border-2 border-red-500/30 border-t-red-400 rounded-full animate-spin" />
             <p className="text-sm text-slate-500">Extracting entities with GPT-4…</p>
           </div>
         ) : null}

@@ -27,7 +27,7 @@ export default function CitationCard({ citation, index }: Props) {
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-5 h-5 rounded-lg bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center flex-shrink-0">
+          <div className="w-5 h-5 rounded-lg bg-gradient-to-br from-cyan-500/20 to-red-500/20 border border-white/10 flex items-center justify-center flex-shrink-0">
             <span className="text-cyan-400 font-mono text-[10px]">{index}</span>
           </div>
           <div className="flex items-center gap-1.5 min-w-0">

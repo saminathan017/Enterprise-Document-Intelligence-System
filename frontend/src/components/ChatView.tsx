@@ -93,7 +93,7 @@ export default function ChatView() {
           />
           <div className="flex items-center justify-between px-4 pb-3 pt-1">
             <div className="flex items-center gap-2 text-xs text-slate-600">
-              <Sparkles size={12} className="text-purple-500" />
+              <Sparkles size={12} className="text-red-500" />
               <span>Hybrid RAG · CoT · Streaming</span>
             </div>
             <div className="flex items-center gap-2">
@@ -115,7 +115,7 @@ export default function ChatView() {
                 <button
                   onClick={handleSubmit}
                   disabled={!input.trim()}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-500/30 text-cyan-300 text-xs font-medium hover:from-cyan-500/30 hover:to-purple-500/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500/20 to-red-500/20 border border-cyan-500/30 text-cyan-300 text-xs font-medium hover:from-cyan-500/30 hover:to-red-500/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
                   <Send size={13} />
                   Send
@@ -136,7 +136,7 @@ function EmptyState({ onSuggest }: { onSuggest: (s: string) => void }) {
       animate={{ opacity: 1, y: 0 }}
       className="flex flex-col items-center justify-center h-full min-h-[400px] text-center px-8"
     >
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-cyan-500/20 flex items-center justify-center mb-6 glow-cyan">
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-red-500/20 border border-cyan-500/20 flex items-center justify-center mb-6 glow-cyan">
         <Sparkles size={28} className="text-cyan-400" />
       </div>
       <h2 className="text-xl font-semibold text-white mb-2">Start with a question</h2>
