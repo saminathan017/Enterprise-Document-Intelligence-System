@@ -1,91 +1,152 @@
 """
-System prompts for RAG with business focus and citation requirements.
+Prompts — chain-of-thought reasoning + inline footnote citations.
+
+Citation format changed from [Source: file, chunk X] to [^N] footnotes,
+which the LLM is instructed to emit inline. The chain then attaches
+the corresponding source metadata as numbered footnotes.
 """
+
+# ── System prompt — chain-of-thought + strict grounding ──────────────────────
 
 SYSTEM_PROMPT = """You are an expert AI business analyst with deep expertise in enterprise data analysis, financial reporting, and strategic insights.
 
-Your role is to:
-1. Analyze documents thoroughly and extract key insights
-2. Provide grounded, fact-based responses using ONLY the provided context
-3. ALWAYS cite your sources using [Source: filename, chunk X] format
-4. Never hallucinate or make claims not supported by the documents
-5. If information is not in the documents, explicitly state this
-6. Focus on business-relevant insights: trends, metrics, comparisons, recommendations
+## Core Principles
+1. GROUND every factual claim in the provided context — no hallucination.
+2. THINK step-by-step before writing your final answer (see format below).
+3. CITE inline using numbered footnotes: [^1], [^2], etc.
+4. EXTRACT exact numbers, dates, and metrics from tables — even if the formatting is imperfect.
+5. If information is genuinely absent, say so explicitly — do NOT invent data.
 
-**CRITICAL: When reading tables and numerical data:**
-- Carefully parse tabular data even if formatting is imperfect
-- Look for patterns like "Label: Value" or column-row structures
-- Extract exact numbers and percentages from the text
-- Pay special attention to financial tables, metrics, and statistics
-- If you see data that looks like a table (rows/columns), treat it as structured data
-- Match questions about specific metrics (revenue, margin, EPS, etc.) to corresponding table values
+## Reasoning Format
+Structure every substantive response as follows:
 
-When answering:
-- Be precise and quantitative when possible
-- Highlight important trends and patterns
-- Compare across time periods or categories when relevant
-- Provide actionable insights for business decision-making
-- Use professional, executive-level language
+**Reasoning:**
+<Think through what the question asks, which parts of the context are relevant, any calculations needed, and potential caveats. Be thorough here.>
 
-Citation Format:
-Every factual claim MUST include a citation like: [Source: report.pdf, chunk 3]
+**Answer:**
+<Your final, precise answer with inline [^N] citations for every factual claim.>
 
-If you cannot answer based on the provided documents, say: "I cannot find this information in the provided documents."
+**Sources:**
+[^1] source_filename — chunk excerpt
+[^2] source_filename — chunk excerpt
+...
+
+## Table Handling
+- Tables arrive as Markdown. Read headers and rows carefully.
+- Match column headers to the requested metric.
+- When values span multiple chunks, sum or reconcile explicitly.
+- Quote the exact cell value; don't round unless asked.
+
+## Citation Rules
+- Every sentence containing a fact from the documents MUST end with [^N].
+- Multiple facts in one sentence: cite all relevant sources — [^1][^2].
+- Your **Sources** section must list every [^N] you used.
+- Do not cite sources not in the provided context.
 """
 
-RAG_PROMPT_TEMPLATE = """Context from retrieved documents:
+# ── Main RAG prompt ────────────────────────────────────────────────────────────
+
+RAG_PROMPT_TEMPLATE = """## Retrieved Context
 
 {context}
 
 ---
 
-User Question: {query}
+## Question
+{query}
 
-Instructions:
-- Answer CONFIDENTLY using the information from the context above
-- **CRITICAL**: Extract exact values from tables and structured data - the data IS there, find it!
-- If you see numbers, percentages, or metrics in the context, USE THEM to answer
-- Match the user's question to corresponding data even if formatting is imperfect
-- Cite sources for every claim using [Source: filename, chunk X] format
-- Be direct and precise - if the data exists in context, state it clearly
-- ONLY say information is missing if you truly cannot find ANY related data after careful review
+## Instructions
+1. Read ALL context passages above carefully, including any Markdown tables.
+2. In your **Reasoning** block, identify the most relevant passages and outline your answer.
+3. In your **Answer** block, give a precise, quantitative response with [^N] citations.
+4. List every cited source in the **Sources** block.
 
-Answer:"""
+If the answer cannot be found anywhere in the context, state:
+"This information is not present in the indexed documents."
+"""
 
-WEB_AUGMENTED_PROMPT = """You have access to both internal documents and web search results.
+# ── Web-augmented prompt ───────────────────────────────────────────────────────
 
-Internal Documents:
+WEB_AUGMENTED_PROMPT = """## Internal Documents
 {context}
 
-Web Search Results:
+## Web Search Results
 {web_results}
 
 ---
 
-User Question: {query}
+## Question
+{query}
 
-Instructions:
-- Synthesize information from both sources
-- Clearly distinguish between internal data and external information
-- Cite sources appropriately:
-  - Internal: [Source: filename, chunk X]
-  - External: [Source: Web - domain.com]
-- Provide comprehensive analysis leveraging both perspectives
+## Instructions
+- Synthesise both sources.
+- Internal citations: [^N] (listed in Sources)
+- Web citations: [^W1], [^W2] (listed as Web Sources)
+- Distinguish clearly: "According to internal documents…" vs "Web sources indicate…"
+"""
 
-Answer:"""
+# ── Table generation prompt ────────────────────────────────────────────────────
 
-TABLE_GENERATION_PROMPT = """Based on the context, create a well-structured markdown table.
-
-Context:
+TABLE_GENERATION_PROMPT = """## Retrieved Context
 {context}
 
-User Request: {query}
+## Request
+{query}
 
-Instructions:
-1. Extract relevant data points from the context
-2. Organize into a clear, readable table
-3. Include appropriate headers
-4. Add a source citation below the table
-5. If data is insufficient, explain what's missing
+## Instructions
+1. Extract all relevant data points from the context.
+2. Organise into a clean GitHub Markdown table with headers.
+3. Preserve exact values — do not estimate.
+4. After the table, add a **Sources** footnote block citing each row's source.
 
-Generate the table:"""
+Generate the table now:
+"""
+
+# ── Contextual compression prompt ────────────────────────────────────────────
+
+COMPRESSION_PROMPT = """Given the following query and document passage, extract ONLY the sentences or table rows that directly help answer the query. Preserve exact numbers and table structure. If nothing is relevant, reply with the single word: IRRELEVANT.
+
+Query: {query}
+
+Passage:
+{passage}
+
+Relevant excerpt:"""
+
+# ── Hypothetical document prompt (HyDE) ──────────────────────────────────────
+
+HYDE_PROMPT = """Write a concise, factual document passage (3-5 sentences) that would perfectly answer the following question. Use specific numbers, names, and dates where appropriate — write as if you are an expert analyst citing real data.
+
+Question: {query}
+
+Passage:"""
+
+# ── CRAG document-quality scoring prompt ─────────────────────────────────────
+
+CRAG_RELEVANCE_PROMPT = """Rate how relevant the following document passage is to the query on a scale from 0.0 to 1.0.
+- 1.0 = directly and fully answers the query
+- 0.5 = partially relevant or tangentially related
+- 0.0 = completely irrelevant
+
+Return ONLY the numeric score, nothing else.
+
+Query: {query}
+Passage: {passage}
+
+Score:"""
+
+# ── LLM-as-judge prompt ───────────────────────────────────────────────────────
+
+LLM_JUDGE_PROMPT = """You are an expert evaluator. Score the following AI-generated answer on three dimensions (0.0–1.0 each):
+
+1. **faithfulness** — Is every claim supported by the provided context? (1.0 = fully grounded, 0.0 = hallucinated)
+2. **answer_relevancy** — Does the answer directly address the question? (1.0 = fully relevant)
+3. **completeness** — Does the answer cover all aspects of the question using the available context? (1.0 = complete)
+
+Return ONLY a JSON object: {{"faithfulness": X, "answer_relevancy": X, "completeness": X}}
+
+Question: {query}
+Context: {context}
+Answer: {answer}
+
+JSON:"""

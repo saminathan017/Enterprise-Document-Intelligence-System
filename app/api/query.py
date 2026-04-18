@@ -4,7 +4,7 @@ Main intelligence endpoint.
 """
 
 from fastapi import APIRouter, HTTPException
-from datetime import datetime
+from datetime import datetime, timezone
 import time
 
 from app.models.requests import QueryRequest
@@ -59,8 +59,8 @@ async def query_documents(request: QueryRequest):
                     request.session_id,
                     {
                         "session_id": request.session_id,
-                        "created_at": datetime.utcnow().isoformat(),
-                        "last_activity": datetime.utcnow().isoformat(),
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                        "last_activity": datetime.now(timezone.utc).isoformat(),
                         "message_count": 0,
                         "history": []
                     }
@@ -95,7 +95,7 @@ async def query_documents(request: QueryRequest):
             # Update session
             session_manager.update_session(
                 request.session_id,
-                {"last_activity": datetime.utcnow().isoformat()}
+                {"last_activity": datetime.now(timezone.utc).isoformat()}
             )
             
             processing_time = int((time.time() - start_time) * 1000)

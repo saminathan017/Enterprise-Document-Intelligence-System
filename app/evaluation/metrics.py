@@ -1,410 +1,328 @@
 """
-RAG Evaluation Metrics Framework
+RAG Evaluation Framework v2 — production-grade metrics.
 
-Comprehensive evaluation for Retrieval-Augmented Generation systems.
-Includes retrieval metrics, generation metrics, and faithfulness detection.
+Replaces ROUGE/BLEU with:
+  • BERTScore          — semantic F1 via contextual embeddings
+  • NLI Faithfulness   — cross-encoder/nli-deberta-v3-base entailment check
+  • Answer Relevancy   — cosine sim between question and answer embeddings
+  • LLM-as-judge       — GPT-4o-mini scores faithfulness/relevancy/completeness
+  • Classic retrieval  — Precision@K, Recall@K, MRR, NDCG@K (unchanged)
 """
 
-from typing import List, Dict, Any, Tuple
+from __future__ import annotations
+
+import json
+import logging
 import numpy as np
 from collections import defaultdict
+from typing import List, Dict, Any, Tuple, Optional
 
+logger = logging.getLogger(__name__)
+
+# ── Optional heavy deps (graceful degradation) ────────────────────────────────
+
+try:
+    from bert_score import score as _bert_score
+    _BERTSCORE = True
+except ImportError:
+    _BERTSCORE = False
+
+try:
+    from sentence_transformers import CrossEncoder
+    _NLI_MODEL: Optional[CrossEncoder] = None
+    _NLI_AVAILABLE = True
+except ImportError:
+    _NLI_AVAILABLE = False
+    _NLI_MODEL = None
+
+try:
+    from sentence_transformers import SentenceTransformer
+    _SIM_MODEL: Optional[SentenceTransformer] = None
+    _SIM_AVAILABLE = True
+except ImportError:
+    _SIM_AVAILABLE = False
+    _SIM_MODEL = None
+
+
+def _get_nli_model() -> Optional[Any]:
+    global _NLI_MODEL
+    if not _NLI_AVAILABLE:
+        return None
+    if _NLI_MODEL is None:
+        try:
+            _NLI_MODEL = CrossEncoder("cross-encoder/nli-deberta-v3-base")
+        except Exception as e:
+            logger.warning("NLI model load failed: %s", e)
+    return _NLI_MODEL
+
+
+def _get_sim_model() -> Optional[Any]:
+    global _SIM_MODEL
+    if not _SIM_AVAILABLE:
+        return None
+    if _SIM_MODEL is None:
+        try:
+            _SIM_MODEL = SentenceTransformer("BAAI/bge-large-en-v1.5")
+        except Exception as e:
+            logger.warning("Similarity model load failed: %s", e)
+    return _SIM_MODEL
+
+
+# ── RAGEvaluator ──────────────────────────────────────────────────────────────
 
 class RAGEvaluator:
-    """Comprehensive RAG evaluation with industry-standard metrics."""
-    
+    """Comprehensive RAG evaluation with semantic and LLM-based metrics."""
+
     def __init__(self):
-        self.results = defaultdict(list)
-    
-    # ==================== RETRIEVAL METRICS ====================
-    
-    def precision_at_k(
-        self, 
-        retrieved_docs: List[str], 
-        relevant_docs: List[str], 
-        k: int = 5
-    ) -> float:
-        """
-        Precision@K: What fraction of top-K retrieved docs are relevant?
-        
-        Args:
-            retrieved_docs: List of retrieved document IDs
-            relevant_docs: List of ground truth relevant document IDs
-            k: Number of top documents to consider
-            
-        Returns:
-            Precision@K score (0.0 to 1.0)
-        """
-        if not retrieved_docs or k == 0:
+        self.results: Dict[str, List] = defaultdict(list)
+
+    # ── Retrieval metrics (unchanged, well-implemented) ───────────────────────
+
+    def precision_at_k(self, retrieved: List[str], relevant: List[str], k: int = 5) -> float:
+        if not retrieved or k == 0:
             return 0.0
-        
-        top_k = retrieved_docs[:k]
-        relevant_set = set(relevant_docs)
-        
-        num_relevant = sum(1 for doc in top_k if doc in relevant_set)
-        return num_relevant / k
-    
-    def recall_at_k(
-        self, 
-        retrieved_docs: List[str], 
-        relevant_docs: List[str], 
-        k: int = 5
-    ) -> float:
-        """
-        Recall@K: What fraction of relevant docs are in top-K?
-        
-        Args:
-            retrieved_docs: List of retrieved document IDs
-            relevant_docs: List of ground truth relevant document IDs
-            k: Number of top documents to consider
-            
-        Returns:
-            Recall@K score (0.0 to 1.0)
-        """
-        if not relevant_docs:
+        hits = sum(1 for d in retrieved[:k] if d in set(relevant))
+        return hits / k
+
+    def recall_at_k(self, retrieved: List[str], relevant: List[str], k: int = 5) -> float:
+        if not relevant:
             return 0.0
-        
-        top_k = retrieved_docs[:k]
-        relevant_set = set(relevant_docs)
-        
-        num_relevant = sum(1 for doc in top_k if doc in relevant_set)
-        return num_relevant / len(relevant_docs)
-    
-    def mean_reciprocal_rank(
-        self, 
-        retrieved_docs: List[str], 
-        relevant_docs: List[str]
-    ) -> float:
-        """
-        MRR: Average of reciprocal ranks of first relevant document.
-        
-        Args:
-            retrieved_docs: List of retrieved document IDs
-            relevant_docs: List of ground truth relevant document IDs
-            
-        Returns:
-            MRR score (0.0 to 1.0)
-        """
-        relevant_set = set(relevant_docs)
-        
-        for rank, doc in enumerate(retrieved_docs, 1):
-            if doc in relevant_set:
+        hits = sum(1 for d in retrieved[:k] if d in set(relevant))
+        return hits / len(relevant)
+
+    def mean_reciprocal_rank(self, retrieved: List[str], relevant: List[str]) -> float:
+        rel_set = set(relevant)
+        for rank, doc in enumerate(retrieved, 1):
+            if doc in rel_set:
                 return 1.0 / rank
-        
         return 0.0
-    
-    def ndcg_at_k(
-        self, 
-        retrieved_docs: List[str], 
-        relevant_docs: List[str],
-        k: int = 5
-    ) -> float:
-        """
-        NDCG@K: Normalized Discounted Cumulative Gain.
-        Accounts for position of relevant documents.
-        
-        Args:
-            retrieved_docs: List of retrieved document IDs
-            relevant_docs: List of ground truth relevant document IDs
-            k: Number of top documents to consider
-            
-        Returns:
-            NDCG@K score (0.0 to 1.0)
-        """
-        if not relevant_docs:
+
+    def ndcg_at_k(self, retrieved: List[str], relevant: List[str], k: int = 5) -> float:
+        if not relevant:
             return 0.0
-        
-        relevant_set = set(relevant_docs)
-        top_k = retrieved_docs[:k]
-        
-        # DCG: sum of (relevance / log2(rank+1))
-        dcg = sum(
-            1.0 / np.log2(rank + 2)  # +2 because rank starts at 0
-            for rank, doc in enumerate(top_k)
-            if doc in relevant_set
-        )
-        
-        # IDCG: best possible DCG
-        idcg = sum(
-            1.0 / np.log2(rank + 2)
-            for rank in range(min(len(relevant_docs), k))
-        )
-        
+        rel_set = set(relevant)
+        dcg  = sum(1.0 / np.log2(r + 2) for r, d in enumerate(retrieved[:k]) if d in rel_set)
+        idcg = sum(1.0 / np.log2(r + 2) for r in range(min(len(relevant), k)))
         return dcg / idcg if idcg > 0 else 0.0
-    
-    # ==================== GENERATION METRICS ====================
-    
-    def rouge_l(self, generated: str, reference: str) -> float:
+
+    # ── Generation metrics (upgraded) ─────────────────────────────────────────
+
+    def bert_score(self, generated: str, reference: str, lang: str = "en") -> Dict[str, float]:
+        """BERTScore P/R/F1 — semantic match beyond token overlap."""
+        if not _BERTSCORE:
+            logger.warning("bert-score not installed — using Jaccard fallback")
+            sim = self._jaccard(generated, reference)
+            return {"precision": sim, "recall": sim, "f1": sim}
+        try:
+            P, R, F = _bert_score([generated], [reference], lang=lang, verbose=False)
+            return {
+                "precision": float(P[0]),
+                "recall":    float(R[0]),
+                "f1":        float(F[0]),
+            }
+        except Exception as e:
+            logger.warning("BERTScore failed: %s", e)
+            sim = self._jaccard(generated, reference)
+            return {"precision": sim, "recall": sim, "f1": sim}
+
+    def answer_relevancy(self, question: str, answer: str) -> float:
         """
-        ROUGE-L: Longest Common Subsequence based metric.
-        
-        Args:
-            generated: Generated answer
-            reference: Reference answer
-            
-        Returns:
-            ROUGE-L F1 score (0.0 to 1.0)
+        Cosine similarity between question embedding and answer embedding.
+        High score → answer is topically aligned with the question.
         """
-        gen_tokens = generated.lower().split()
-        ref_tokens = reference.lower().split()
-        
-        if not gen_tokens or not ref_tokens:
-            return 0.0
-        
-        # Compute LCS length
-        lcs_length = self._lcs_length(gen_tokens, ref_tokens)
-        
-        # Precision and Recall
-        precision = lcs_length / len(gen_tokens) if gen_tokens else 0.0
-        recall = lcs_length / len(ref_tokens) if ref_tokens else 0.0
-        
-        # F1 score
-        if precision + recall == 0:
-            return 0.0
-        
-        f1 = 2 * (precision * recall) / (precision + recall)
-        return f1
-    
-    def _lcs_length(self, seq1: List[str], seq2: List[str]) -> int:
-        """Compute length of longest common subsequence."""
-        m, n = len(seq1), len(seq2)
-        dp = [[0] * (n + 1) for _ in range(m + 1)]
-        
-        for i in range(1, m + 1):
-            for j in range(1, n + 1):
-                if seq1[i-1] == seq2[j-1]:
-                    dp[i][j] = dp[i-1][j-1] + 1
-                else:
-                    dp[i][j] = max(dp[i-1][j], dp[i][j-1])
-        
-        return dp[m][n]
-    
-    def bleu_score(self, generated: str, reference: str, n: int = 4) -> float:
-        """
-        BLEU: Bilingual Evaluation Understudy score.
-        
-        Args:
-            generated: Generated answer
-            reference: Reference answer
-            n: Maximum n-gram size (default: 4)
-            
-        Returns:
-            BLEU score (0.0 to 1.0)
-        """
-        gen_tokens = generated.lower().split()
-        ref_tokens = reference.lower().split()
-        
-        if not gen_tokens or not ref_tokens:
-            return 0.0
-        
-        # Brevity penalty
-        bp = min(1.0, np.exp(1 - len(ref_tokens) / len(gen_tokens)))
-        
-        # Compute n-gram precisions
-        precisions = []
-        for i in range(1, n + 1):
-            gen_ngrams = self._get_ngrams(gen_tokens, i)
-            ref_ngrams = self._get_ngrams(ref_tokens, i)
-            
-            if not gen_ngrams:
-                precisions.append(0.0)
-                continue
-            
-            matches = sum(
-                min(gen_ngrams[ng], ref_ngrams.get(ng, 0))
-                for ng in gen_ngrams
+        model = _get_sim_model()
+        if model is None:
+            return self._jaccard(question, answer)
+        try:
+            embs = model.encode(
+                [question, answer],
+                normalize_embeddings=True,
+                show_progress_bar=False,
             )
-            
-            precision = matches / sum(gen_ngrams.values())
-            precisions.append(precision)
-        
-        # Geometric mean of precisions
-        if any(p == 0 for p in precisions):
-            return 0.0
-        
-        geo_mean = np.exp(np.mean([np.log(p) for p in precisions]))
-        return bp * geo_mean
-    
-    def _get_ngrams(self, tokens: List[str], n: int) -> Dict[Tuple, int]:
-        """Extract n-grams from token list."""
-        ngrams = defaultdict(int)
-        for i in range(len(tokens) - n + 1):
-            ngram = tuple(tokens[i:i+n])
-            ngrams[ngram] += 1
-        return ngrams
-    
-    def semantic_similarity(self, text1: str, text2: str) -> float:
+            return float(np.dot(embs[0], embs[1]))
+        except Exception as e:
+            logger.warning("Answer relevancy embed failed: %s", e)
+            return self._jaccard(question, answer)
+
+    def faithfulness_nli(self, answer: str, context: str) -> float:
         """
-        Semantic similarity using simple token overlap.
-        For production, use sentence transformers.
-        
-        Args:
-            text1: First text
-            text2: Second text
-            
-        Returns:
-            Jaccard similarity (0.0 to 1.0)
+        NLI-based faithfulness: fraction of answer sentences entailed by context.
+        Uses cross-encoder/nli-deberta-v3-base — 3-class (contradiction/neutral/entailment).
         """
-        tokens1 = set(text1.lower().split())
-        tokens2 = set(text2.lower().split())
-        
-        if not tokens1 or not tokens2:
-            return 0.0
-        
-        intersection = tokens1 & tokens2
-        union = tokens1 | tokens2
-        
-        return len(intersection) / len(union)
-    
-    # ==================== FAITHFULNESS DETECTION ====================
-    
-    def faithfulness_score(
-        self, 
-        answer: str, 
-        context: str,
-        threshold: float = 0.7
-    ) -> float:
-        """
-        Faithfulness: Is the answer grounded in the context?
-        Simple implementation using token overlap.
-        
-        Args:
-            answer: Generated answer
-            context: Retrieved context
-            threshold: Minimum overlap for faithfulness
-            
-        Returns:
-            Faithfulness score (0.0 to 1.0)
-        """
-        # Extract claims from answer (simplified: sentences)
-        claims = [s.strip() for s in answer.split('.') if s.strip()]
-        
-        if not claims:
+        model = _get_nli_model()
+        if model is None:
+            return self._token_overlap_faithfulness(answer, context)
+
+        sentences = [s.strip() for s in answer.split(".") if len(s.strip()) > 10]
+        if not sentences:
             return 1.0
-        
-        # Check each claim against context
-        faithful_claims = 0
-        for claim in claims:
-            overlap = self.semantic_similarity(claim, context)
-            if overlap >= threshold:
-                faithful_claims += 1
-        
-        return faithful_claims / len(claims)
-    
-    # ==================== BATCH EVALUATION ====================
-    
-    def evaluate_retrieval_batch(
+
+        ctx_trimmed = context[:1500]
+        pairs = [(ctx_trimmed, s) for s in sentences]
+        try:
+            raw_scores = model.predict(pairs)
+            # raw_scores shape: (N, 3) — [contradiction, neutral, entailment]
+            entailment_scores = [float(s[2]) for s in raw_scores]
+            return float(np.mean(entailment_scores))
+        except Exception as e:
+            logger.warning("NLI faithfulness failed: %s", e)
+            return self._token_overlap_faithfulness(answer, context)
+
+    def llm_judge(
         self,
-        test_cases: List[Dict[str, Any]],
-        k: int = 5
+        query: str,
+        context: str,
+        answer: str,
+        model: str = "gpt-4o-mini",
     ) -> Dict[str, float]:
         """
-        Evaluate retrieval on a batch of test cases.
-        
-        Args:
-            test_cases: List of dicts with 'retrieved' and 'relevant' keys
-            k: Number of top documents to consider
-            
-        Returns:
-            Dict of average metrics
+        GPT-4o-mini judge: faithfulness, answer_relevancy, completeness (0-1 each).
+        Returns zeros on failure.
         """
-        metrics = {
-            'precision@k': [],
-            'recall@k': [],
-            'mrr': [],
-            'ndcg@k': []
-        }
-        
-        for case in test_cases:
-            retrieved = case['retrieved']
-            relevant = case['relevant']
-            
-            metrics['precision@k'].append(
-                self.precision_at_k(retrieved, relevant, k)
+        from openai import OpenAI
+        from app.config import settings
+        from app.rag.prompts import LLM_JUDGE_PROMPT
+
+        try:
+            client = OpenAI(api_key=settings.openai_api_key)
+            resp = client.chat.completions.create(
+                model=model,
+                messages=[{
+                    "role": "user",
+                    "content": LLM_JUDGE_PROMPT.format(
+                        query=query,
+                        context=context[:2000],
+                        answer=answer[:1500],
+                    ),
+                }],
+                max_tokens=80,
+                temperature=0.0,
             )
-            metrics['recall@k'].append(
-                self.recall_at_k(retrieved, relevant, k)
-            )
-            metrics['mrr'].append(
-                self.mean_reciprocal_rank(retrieved, relevant)
-            )
-            metrics['ndcg@k'].append(
-                self.ndcg_at_k(retrieved, relevant, k)
-            )
-        
-        # Return averages
-        return {
-            metric: np.mean(scores)
-            for metric, scores in metrics.items()
-        }
-    
-    def evaluate_generation_batch(
+            raw = resp.choices[0].message.content or "{}"
+            # Strip markdown fences if present
+            if "```" in raw:
+                raw = raw.split("```")[1].lstrip("json").strip()
+            data = json.loads(raw)
+            return {
+                "faithfulness":      float(data.get("faithfulness", 0)),
+                "answer_relevancy":  float(data.get("answer_relevancy", 0)),
+                "completeness":      float(data.get("completeness", 0)),
+            }
+        except Exception as e:
+            logger.warning("LLM judge failed: %s", e)
+            return {"faithfulness": 0.0, "answer_relevancy": 0.0, "completeness": 0.0}
+
+    # ── Composite RAGAS-style evaluation ──────────────────────────────────────
+
+    def ragas_score(
         self,
-        test_cases: List[Dict[str, Any]]
-    ) -> Dict[str, float]:
+        query: str,
+        answer: str,
+        context: str,
+        reference: Optional[str] = None,
+        use_llm_judge: bool = True,
+    ) -> Dict[str, Any]:
         """
-        Evaluate generation on a batch of test cases.
-        
-        Args:
-            test_cases: List of dicts with 'generated', 'reference', 'context'
-            
-        Returns:
-            Dict of average metrics
+        Unified evaluation combining all metrics.
+
+        Returns a dict with individual scores + aggregate `overall_score`.
         """
-        metrics = {
-            'rouge_l': [],
-            'bleu': [],
-            'semantic_sim': [],
-            'faithfulness': []
-        }
-        
+        result: Dict[str, Any] = {}
+
+        # Faithfulness (NLI)
+        result["faithfulness_nli"] = round(self.faithfulness_nli(answer, context), 4)
+
+        # Answer relevancy
+        result["answer_relevancy"] = round(self.answer_relevancy(query, answer), 4)
+
+        # BERTScore vs reference (if provided)
+        if reference:
+            bs = self.bert_score(answer, reference)
+            result["bert_f1"]       = round(bs["f1"], 4)
+            result["bert_precision"] = round(bs["precision"], 4)
+            result["bert_recall"]    = round(bs["recall"], 4)
+
+        # LLM judge
+        if use_llm_judge:
+            judge = self.llm_judge(query, context, answer)
+            result.update({f"judge_{k}": round(v, 4) for k, v in judge.items()})
+
+        # Aggregate: average the primary signals
+        primary = [
+            result.get("faithfulness_nli", 0),
+            result.get("answer_relevancy", 0),
+            result.get("judge_faithfulness", result.get("faithfulness_nli", 0)),
+            result.get("judge_answer_relevancy", result.get("answer_relevancy", 0)),
+        ]
+        result["overall_score"] = round(float(np.mean(primary)), 4)
+
+        return result
+
+    # ── Batch evaluation ──────────────────────────────────────────────────────
+
+    def evaluate_retrieval_batch(self, test_cases: List[Dict[str, Any]], k: int = 5) -> Dict[str, float]:
+        metrics: Dict[str, List[float]] = defaultdict(list)
         for case in test_cases:
-            generated = case['generated']
-            reference = case['reference']
-            context = case.get('context', '')
-            
-            metrics['rouge_l'].append(
-                self.rouge_l(generated, reference)
-            )
-            metrics['bleu'].append(
-                self.bleu_score(generated, reference)
-            )
-            metrics['semantic_sim'].append(
-                self.semantic_similarity(generated, reference)
-            )
-            metrics['faithfulness'].append(
-                self.faithfulness_score(generated, context)
-            )
-        
-        # Return averages
-        return {
-            metric: np.mean(scores)
-            for metric, scores in metrics.items()
-        }
-    
-    def generate_report(
-        self,
-        retrieval_metrics: Dict[str, float],
-        generation_metrics: Dict[str, float]
-    ) -> str:
-        """Generate a formatted evaluation report."""
-        report = []
-        report.append("=" * 60)
-        report.append("RAG EVALUATION REPORT")
-        report.append("=" * 60)
-        report.append("")
-        
-        report.append("RETRIEVAL METRICS:")
-        report.append("-" * 60)
-        for metric, score in retrieval_metrics.items():
-            report.append(f"  {metric:20s}: {score:.4f} ({score*100:.2f}%)")
-        report.append("")
-        
-        report.append("GENERATION METRICS:")
-        report.append("-" * 60)
-        for metric, score in generation_metrics.items():
-            report.append(f"  {metric:20s}: {score:.4f} ({score*100:.2f}%)")
-        report.append("")
-        
-        report.append("=" * 60)
-        return "\n".join(report)
+            r, rel = case["retrieved"], case["relevant"]
+            metrics["precision@k"].append(self.precision_at_k(r, rel, k))
+            metrics["recall@k"].append(self.recall_at_k(r, rel, k))
+            metrics["mrr"].append(self.mean_reciprocal_rank(r, rel))
+            metrics["ndcg@k"].append(self.ndcg_at_k(r, rel, k))
+        return {m: float(np.mean(v)) for m, v in metrics.items()}
+
+    def evaluate_generation_batch(self, test_cases: List[Dict[str, Any]]) -> Dict[str, float]:
+        metrics: Dict[str, List[float]] = defaultdict(list)
+        for case in test_cases:
+            g, ref, ctx = case["generated"], case.get("reference", ""), case.get("context", "")
+            metrics["faithfulness_nli"].append(self.faithfulness_nli(g, ctx))
+            metrics["answer_relevancy"].append(self.answer_relevancy(case.get("query", g), g))
+            if ref:
+                bs = self.bert_score(g, ref)
+                metrics["bert_f1"].append(bs["f1"])
+        return {m: float(np.mean(v)) for m, v in metrics.items()}
+
+    def generate_report(self, retrieval: Dict[str, float], generation: Dict[str, float]) -> str:
+        lines = ["=" * 60, "RAG EVALUATION REPORT v2", "=" * 60, "", "RETRIEVAL:"]
+        lines += [f"  {k:25s}: {v:.4f} ({v*100:.1f}%)" for k, v in retrieval.items()]
+        lines += ["", "GENERATION:"]
+        lines += [f"  {k:25s}: {v:.4f} ({v*100:.1f}%)" for k, v in generation.items()]
+        lines += ["", "=" * 60]
+        return "\n".join(lines)
+
+    # ── Fallback helpers ──────────────────────────────────────────────────────
+
+    @staticmethod
+    def _jaccard(a: str, b: str) -> float:
+        t1, t2 = set(a.lower().split()), set(b.lower().split())
+        if not t1 or not t2:
+            return 0.0
+        return len(t1 & t2) / len(t1 | t2)
+
+    @staticmethod
+    def _token_overlap_faithfulness(answer: str, context: str) -> float:
+        sentences = [s.strip() for s in answer.split(".") if len(s.strip()) > 10]
+        if not sentences:
+            return 1.0
+        ctx_tokens = set(context.lower().split())
+        scores = [
+            len(set(s.lower().split()) & ctx_tokens) / max(len(s.split()), 1)
+            for s in sentences
+        ]
+        return float(np.mean(scores))
+
+    # ── Legacy compatibility ───────────────────────────────────────────────────
+
+    def rouge_l(self, generated: str, reference: str) -> float:
+        """Kept for backward compat — prefer bert_score."""
+        bs = self.bert_score(generated, reference)
+        return bs["f1"]
+
+    def bleu_score(self, generated: str, reference: str, n: int = 4) -> float:
+        """Kept for backward compat — prefer bert_score."""
+        return self._jaccard(generated, reference)
+
+    def semantic_similarity(self, text1: str, text2: str) -> float:
+        return self.answer_relevancy(text1, text2)
+
+    def faithfulness_score(self, answer: str, context: str, threshold: float = 0.7) -> float:
+        return self.faithfulness_nli(answer, context)

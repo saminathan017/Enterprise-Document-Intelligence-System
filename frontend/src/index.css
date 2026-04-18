@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body, #root {
+    height: 100%;
+    background: #050510;
+    color: #e2e8f0;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.4);
+    border-radius: 2px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.7); }
+
+  ::selection { background: rgba(0, 212, 255, 0.2); }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/5 backdrop-blur-md border border-white/10;
+  }
+  .glass-hover {
+    @apply hover:bg-white/8 transition-colors duration-200;
+  }
+  .glow-cyan {
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.25);
+  }
+  .glow-purple {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.25);
+  }
+  .text-gradient {
+    @apply bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent;
+  }
+  .btn-primary {
+    @apply px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500/20 to-purple-500/20
+           border border-cyan-500/30 text-cyan-300 text-sm font-medium
+           hover:from-cyan-500/30 hover:to-purple-500/30 hover:border-cyan-400/50
+           transition-all duration-200 cursor-pointer select-none;
+  }
+  .btn-ghost {
+    @apply px-3 py-1.5 rounded-lg text-slate-400 text-sm
+           hover:text-slate-200 hover:bg-white/5
+           transition-all duration-150 cursor-pointer select-none;
+  }
+}
+
+/* Streaming cursor */
+.streaming-cursor::after {
+  content: '▋';
+  animation: cursor 0.8s step-end infinite;
+  color: #00d4ff;
+  margin-left: 1px;
+}
+
+@keyframes cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}

@@ -1,30 +1,48 @@
-# Core Web Framework - Essential only
+# ── Web Framework ─────────────────────────────────────────────────────────────
 fastapi
-uvicorn
+uvicorn[standard]
 pydantic
 pydantic-settings
 python-multipart
+aiofiles
+slowapi                   # rate limiting
 
-# LLM
+# ── LLM ───────────────────────────────────────────────────────────────────────
 langchain
 langchain-openai
+langchain-core
 openai
 
-# Vector Database - Simplified
+# ── Vector Database ────────────────────────────────────────────────────────────
 chromadb
-sentence-transformers
+sentence-transformers     # BGE-large-en-v1.5 + CrossEncoder NLI
 langchain-text-splitters
 langchain-community
 
-# Document Processing
-PyPDF2
-python-dotenv
+# ── Hybrid Search ─────────────────────────────────────────────────────────────
+rank-bm25                 # BM25 sparse index for hybrid RRF search
 
-# Web Tools
+# ── Document Processing ────────────────────────────────────────────────────────
+pdfplumber                # structured PDF + table extraction
+PyPDF2                    # fallback PDF text
+python-dotenv
+python-docx               # DOCX support
+openpyxl                  # XLSX backend
+pandas                    # Excel/CSV processing
+python-pptx               # PPTX support
+
+# ── Vision OCR (optional — install separately if needed) ──────────────────────
+# pdf2image               # scanned PDF → images for GPT-4o Vision
+
+# ── Evaluation ────────────────────────────────────────────────────────────────
+bert-score                # semantic generation quality
+tiktoken                  # accurate OpenAI token counting
+
+# ── Web Tools ─────────────────────────────────────────────────────────────────
 requests
 beautifulsoup4
 
-# Testing
+# ── Testing ───────────────────────────────────────────────────────────────────
 pytest
 pytest-asyncio
 httpx

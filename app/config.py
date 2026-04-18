@@ -31,15 +31,24 @@ class Settings(BaseSettings):
     
     # Embeddings
     embedding_model: str = Field(
-        default="sentence-transformers/all-MiniLM-L6-v2",
-        description="Sentence transformer model"
+        default="BAAI/bge-large-en-v1.5",
+        description="Sentence transformer model (BGE query-prefix optimized)"
     )
     embedding_device: str = Field(default="cpu", description="Device for embeddings")
+    embedding_dim: int = Field(default=1024, description="Embedding dimension for BAAI/bge-large-en-v1.5")
     
     # LLM Configuration
     llm_model: str = Field(
         default="gpt-4-turbo-preview",
-        description="OpenAI model name"
+        description="OpenAI model for final generation"
+    )
+    helper_model: str = Field(
+        default="gpt-4o-mini",
+        description="Fast/cheap model for HyDE, CRAG, compression, KG extraction"
+    )
+    ocr_model: str = Field(
+        default="gpt-4o",
+        description="Vision-capable model for scanned PDF OCR"
     )
     llm_temperature: float = Field(default=0.1, description="LLM temperature")
     max_tokens: int = Field(default=2000, description="Max tokens in response")

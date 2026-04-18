@@ -6,7 +6,7 @@ Handles session lifecycle and storage.
 import json
 import uuid
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional
 
 from app.config import settings
@@ -36,8 +36,8 @@ class SessionManager:
         session_id = str(uuid.uuid4())
         session_data = {
             "session_id": session_id,
-            "created_at": datetime.utcnow().isoformat(),
-            "last_activity": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "last_activity": datetime.now(timezone.utc).isoformat(),
             "message_count": 0,
             "history": []
         }
@@ -65,7 +65,7 @@ class SessionManager:
         
         # Check if session has expired
         last_activity = datetime.fromisoformat(session_data["last_activity"])
-        if datetime.utcnow() - last_activity > self.timeout:
+        if datetime.now(timezone.utc) - last_activity > self.timeout:
             # Session expired
             self.delete_session(session_id)
             return None
@@ -94,7 +94,7 @@ class SessionManager:
             return False
         
         # Update last activity
-        session_data["last_activity"] = datetime.utcnow().isoformat()
+        session_data["last_activity"] = datetime.now(timezone.utc).isoformat()
         
         # Update history
         if history is not None:
@@ -140,7 +140,7 @@ class SessionManager:
         
         session_data["history"] = []
         session_data["message_count"] = 0
-        session_data["last_activity"] = datetime.utcnow().isoformat()
+        session_data["last_activity"] = datetime.now(timezone.utc).isoformat()
         
         self._save_session(session_id, session_data)
         return True
@@ -168,7 +168,7 @@ class SessionManager:
                 session_data = json.load(f)
             
             last_activity = datetime.fromisoformat(session_data["last_activity"])
-            if datetime.utcnow() - last_activity > self.timeout:
+            if datetime.now(timezone.utc) - last_activity > self.timeout:
                 session_file.unlink()
                 deleted_count += 1
         

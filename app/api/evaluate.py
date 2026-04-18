@@ -122,8 +122,8 @@ async def get_current_metrics():
     Returns real-time performance and quality metrics.
     """
     try:
-        from datetime import datetime
-        
+        from datetime import datetime, timezone
+
         # In production, these would come from monitoring system
         metrics = {
             "citation_accuracy": 0.99,
@@ -134,11 +134,11 @@ async def get_current_metrics():
             "error_rate": 0.001,
             "uptime_hours": 720
         }
-        
+
         return MetricsResponse(
             success=True,
             metrics=metrics,
-            timestamp=datetime.utcnow().isoformat()
+            timestamp=datetime.now(timezone.utc).isoformat()
         )
         
     except Exception as e:
